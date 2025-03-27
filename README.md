@@ -8,7 +8,7 @@ Simple vk group scrapper based on:
 
 # Installation and use:
     pip install -r requirements.txt
-    crawl vk_spider -o json.json -a group=vk_group_id -a posts_count=max_posts_to_load -a last_post=last_post_to_load
+    scrapy crawl vk_spider -o json.json -a group=vk_group_id -a posts_count=max_posts_to_load -a last_post=last_post_to_load
 
 # Attention
 *Spider can`t get nonpublic media!*

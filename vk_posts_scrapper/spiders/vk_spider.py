@@ -59,7 +59,6 @@ class VkSpiderSpider(scrapy.Spider):
                 cb_kwargs={'post_url': post_url},
                 screenshot=True,
                 wait_until=EC.all_of(
-                    # EC.visibility_of_all_elements_located((
                     EC.presence_of_all_elements_located((
                         By.CSS_SELECTOR,
                         selectors)),
