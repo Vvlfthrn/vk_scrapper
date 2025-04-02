@@ -15,3 +15,5 @@ class VkPostsScrapperItem(scrapy.Item):
     image_urls = scrapy.Field(serializer=list)
     images = scrapy.Field(serializer=list)
     screenshot = scrapy.Field(serializer=str)
+    json_data = scrapy.Field(serialaizer=dict)
+    post_date = scrapy.Field(serializer=int)

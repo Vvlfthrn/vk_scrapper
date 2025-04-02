@@ -1,3 +1,6 @@
+import json
+
+import lxml.html
 import scrapy
 
 from os import path
@@ -10,6 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from scrapy import Request
 from scrapy_selenium import SeleniumRequest
 
+from request import ModifiedSeleniumRequest
 from vk_posts_scrapper.items import VkPostsScrapperItem
 from vk_posts_scrapper.conditions import images_loaded
 
@@ -53,11 +57,12 @@ class VkSpiderSpider(scrapy.Spider):
             selectors = f'{restriction_text_selector}, {image_css_selector}, {single_page_video_selector}, {text_page_selector}'
             wait_to_load_selectors = f'{restriction_text_selector}, {image_css_selector}, {single_page_video_selector}'
 
-            yield SeleniumRequest(
+            yield ModifiedSeleniumRequest(
                 url=f'{self.base_url}/wall{post_url}',
                 callback=self.post_detail_parse,
                 cb_kwargs={'post_url': post_url},
                 screenshot=True,
+                source_code=True,
                 wait_until=EC.all_of(
                     EC.presence_of_all_elements_located((
                         By.CSS_SELECTOR,
@@ -78,6 +83,7 @@ class VkSpiderSpider(scrapy.Spider):
             )
 
     def post_detail_parse(self, response, post_url:str=None):
+
         post = response.css(f'[id^="post{post_url}"]')[0]
         text = post.css('[class^="vkuiDiv"] [class^="vkuiDiv"] [class^="vkitShowMoreText__text"]::text').getall()
         media: list = post.css('[class^="vkitMediaGridItem__root"] a::attr(href)').getall()
@@ -91,6 +97,11 @@ class VkSpiderSpider(scrapy.Spider):
         )
 
         item = VkPostsScrapperItem()
+        root = lxml.html.fromstring(response.meta['source_code'])
+        try:
+            item['json_data'] = json.loads(root.find_class('PostContentContainer')[0].get('data-exec'))
+        except json.JSONDecodeError:
+            item['json_data'] = None
         item['text'] = text
         item['video_urls'] = set([x.split('?')[0] for x in media if 'video' in x])
         item['videos'] = []
@@ -99,6 +110,7 @@ class VkSpiderSpider(scrapy.Spider):
         item["post_url"] = post_url
         item["media"] = media
         item['screenshot'] = "screenshot" + post_url + ".png"
+        item['post_date'] = item['json_data']['PostContentContainer/init']['item']['date'] if item['json_data'] else None
         with open(f'{path.join(self.settings["IMAGES_STORE"], "screenshot"+post_url+".png")}', 'wb') as f:
             f.write(response.meta['screenshot'])
         yield item

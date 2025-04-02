@@ -7,6 +7,10 @@ from scrapy import signals
 
 # useful for handling different item types with a single interface
 from itemadapter import is_item, ItemAdapter
+from selenium.common import NoSuchElementException
+from selenium.webdriver.common.by import By
+
+from request import ModifiedSeleniumRequest
 
 
 class VkPostsScrapperSpiderMiddleware:
@@ -213,8 +217,16 @@ class SeleniumMiddleware:
     def process_request(self, request, spider):
         """Process a request using the selenium driver if applicable"""
 
-        if not isinstance(request, SeleniumRequest):
+        if not isinstance(request, (SeleniumRequest, ModifiedSeleniumRequest)):
             return None
+
+        if isinstance(request, ModifiedSeleniumRequest) and request.source_code:
+            try:
+                self.driver.get(f"view-source:{request.url}")
+                # request.meta['source_code'] = self.driver.find_element(By.CSS_SELECTOR, 'PostContentContainer__root')
+                request.meta['source_code'] = self.driver.find_element(By.TAG_NAME, 'body').text
+            except NoSuchElementException:
+                pass
 
         self.driver.get(request.url)
 
